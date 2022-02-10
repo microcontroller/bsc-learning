@@ -1,0 +1,7 @@
+FROM python:latest
+
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
+RUN useradd -u 1000 -d /home/user -m user
+USER user
+WORKDIR /home/user/code
