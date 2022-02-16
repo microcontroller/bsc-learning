@@ -72,11 +72,17 @@ def q_pancake_recent_daily(start):
 ''' % (start,)
 
 #----------------------------------------------------------------------#
-def q_ohlc_periods(address, start, period='minute', periods_per_candle= 1, limit_candles= None):
+def q_ohlc_periods(
+    address,
+    start,
+    period= 'minute',
+    periods_per_candle= 1,
+    limit_candles= None,
+    quote_address= '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c'):
     'Construct a query to obtain OHLC data for a given address.'
     
     # Apply the limit if one was given
-    limit = (limit_candles is not None) and f'options: \{limit: {limit_candles}, asc: "timeInterval.{period}"\}' or ''
+    limit = (limit_candles is not None) and f'options: {{limit: {limit_candles}, asc: "timeInterval.{period}"}}' or ''
     
     # Now construct and return the query
     return '''{
@@ -85,7 +91,7 @@ def q_ohlc_periods(address, start, period='minute', periods_per_candle= 1, limit
       date: {since: "%s"}
       exchangeName: {in: ["Pancake", "Pancake v2"]}
       baseCurrency: {is: "%s"}
-      quoteCurrency: {is: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"}
+      quoteCurrency: {is: "%s"}
     ) {
       timeInterval {
         %s(count: %s)
@@ -102,7 +108,7 @@ def q_ohlc_periods(address, start, period='minute', periods_per_candle= 1, limit
     }
   }
 }
-''' % (limit, start, address, period, periods_per_candle)
+''' % (limit, start, address, quote_address, period, periods_per_candle)
 
 #----------------------------------------------------------------------#
 def q_tokens_created(start_time, end_time):
@@ -177,16 +183,16 @@ def get_recent_tokens(from_days_ago= 5, to_days_ago= 4):
     return new_tokens
 
 #----------------------------------------------------------------------#
-def analyze_new_token(token):
-    'Perform basic trend analysis on a new token.'
+def get_ohlc(address, start_time, period= 'minute', periods_per_candle= 1, limit_candles= 24*60, quote_address= '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c'):
+    'Obtain OHLC data on an address.'
     
     # Construct and run a query to get OHLC data
-    query  = q_ohlc_periods(token['address'], token['created'].isoformat(), 'minute', 1)
+    query  = q_ohlc_periods(address, start_time, period, periods_per_candle, limit_candles, quote_address)
     result = run_query(query)
     
     # Basic error handling
     if 'errors' in result:
-        raise RuntimeError(f'ERROR: New tokens query failed with {result["errors"]}')
+        raise RuntimeError(f'ERROR: OHLC query ({address}, {start_time}, {period}, {periods_per_candle}, {limit_candles}) failed with {result["errors"]}')
     
     trades = result['data']['ethereum']['dexTrades']
     ohlc   = [
@@ -200,6 +206,17 @@ def analyze_new_token(token):
         )
         for trade in trades
     ]
+    return ohlc
+
+#----------------------------------------------------------------------#
+def analyze_new_token(token):
+    'Perform basic trend analysis on a new token.'
+    
+    # Construct and run a query to get OHLC data
+    ohlc = get_ohlc(token['address'], token['created'].isoformat(), 'minute', 1)
+    
+    # TBD...
+    
     return ohlc
     
     

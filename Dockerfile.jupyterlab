@@ -1,3 +1,4 @@
 FROM jupyter/scipy-notebook
 
 RUN conda install requests web3
+RUN rmdir /home/jovyan/work
