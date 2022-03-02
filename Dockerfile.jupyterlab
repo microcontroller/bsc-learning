@@ -1,4 +1,4 @@
 FROM jupyter/scipy-notebook
 
-RUN conda install requests web3
+RUN conda install requests web3 mplfinance powerlaw
 RUN rmdir /home/jovyan/work
